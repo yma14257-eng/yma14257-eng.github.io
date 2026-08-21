@@ -1,3 +1,19 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="公共工程品質管理訓練班（土建）115 年 1 月起適用測驗題庫練習，2,593 題、17 章，可選章節練習、即時對答案、錯題本自動累積。">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1A2126" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="土建品管">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23161D24'/%3E%3Cpath d='M0 78 L100 78 L100 100 L0 100Z' fill='%23D9541A'/%3E%3Cpath d='M50 12 L50 70 M50 22 L20 46 M50 22 L80 46' stroke='%23D9541A' stroke-width='9' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23161D24'/%3E%3Cpath d='M0 78 L100 78 L100 100 L0 100Z' fill='%23D9541A'/%3E%3Cpath d='M50 12 L50 70 M50 22 L20 46 M50 22 L80 46' stroke='%23D9541A' stroke-width='9' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <title>土建品管刷題場</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -62,7 +78,7 @@ button{font:inherit;color:inherit}
 
 /* ── 頁首 ─────────────────────────────── */
 header.site{background:var(--surface);border-bottom:1px solid var(--line)}
-.site-in{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:22px 0 18px;flex-wrap:wrap}
+.site-in{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-block:22px 18px;flex-wrap:wrap}
 h1{
   margin:0; font-size:1.6rem; line-height:1.25; font-weight:700;
   letter-spacing:.02em; text-wrap:balance;
@@ -163,7 +179,7 @@ label.ch input:focus-visible + .box{outline:2px solid var(--accent);outline-offs
   position:sticky;top:0;z-index:5;background:var(--surface);
   border-bottom:1px solid var(--line);
 }
-.hud-in{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0}
+.hud-in{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-block:10px}
 .tallies{display:flex;gap:16px;font-size:.85rem}
 .tally{display:flex;align-items:baseline;gap:5px;color:var(--ink-3)}
 .tally b{font-size:1.05rem;font-weight:700}
@@ -238,16 +254,62 @@ ul.review li:last-child{border-bottom:0}
 .empty{padding:28px 16px;text-align:center;color:var(--ink-3);font-size:.9rem}
 footer{padding:22px 0 0;border-top:1px solid var(--line);color:var(--ink-3);font-size:.76rem;line-height:1.7}
 .hide{display:none !important}
+
+/* ── 觸控裝置 ─────────────────────────── */
+button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+@media (pointer:coarse){
+  .kbdhint{display:none}
+  button.choice{min-height:56px;align-items:center;padding:14px}
+  .key{width:30px;height:30px;font-size:.92rem;margin-top:0}
+  label.ch{padding:15px 16px}
+  .chip{padding:7px 13px}
+  .seg button{padding:9px 15px}
+  .quitbtn{padding:8px 13px}
+  .themebtn{padding:9px 12px}
+}
+
+/* ── 手機版面：作答列固定在拇指範圍 ───── */
+@media (max-width:700px){
+  .wrap{padding:0 14px}
+  .verdict{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    margin:0;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    background:var(--surface);border-top:3px solid var(--line);border-radius:0;
+    box-shadow:0 -8px 24px -14px rgba(0,0,0,.55);
+    cursor:pointer;
+  }
+  .verdict.ok{border-top-color:var(--ok)}
+  .verdict.bad{border-top-color:var(--bad)}
+  .verdict .hint{display:none}
+  .verdict .msg{font-size:1rem}
+  .nextbtn{padding:13px 26px;font-size:1rem}
+  #view-quiz{padding-bottom:100px}
+  .hud-in{padding-block:9px}
+  .tallies{gap:13px;font-size:.8rem}
+  main{padding:16px 0 40px}
+  section.card{margin-bottom:14px}
+}
 @media (max-width:560px){
-  h1{font-size:1.3rem}
-  .stem{font-size:1.05rem}
-  .site-in{padding:16px 0 14px}
-  label.ch{gap:9px;padding:10px 12px}
+  h1{font-size:1.35rem}
+  h1 .rule{margin-bottom:7px}
+  .stem{font-size:1.06rem;line-height:1.7}
+  .site-in{padding-block:14px 12px;align-items:center}
+  .stamp{padding:4px 8px;font-size:.68rem}
+  .stamp-sub{display:none}
   .ch-meta{font-size:.72rem}
   .card-bd{padding:13px}
+  .card-hd{padding:11px 13px}
+  .opts{gap:14px 20px}
+  .bignum{font-size:1.8rem}
+  .wrongbox .go,.card.resume .go{width:100%;padding:13px}
+  .score{font-size:2.6rem}
+  .qhead{gap:8px;margin-bottom:11px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
+</head>
+<body>
+
 
 <div class="hazard"></div>
 <header class="site">
@@ -258,7 +320,7 @@ footer{padding:22px 0 0;border-top:1px solid var(--line);color:var(--ink-3);font
     </div>
     <div style="display:flex;gap:10px;align-items:center">
       <button class="themebtn" id="themebtn" type="button">深色</button>
-      <div class="stamp mono"><b>115 年 1 月起適用</b>題庫 2,593 題 · 17 章</div>
+      <div class="stamp mono"><b>115 年 1 月起適用</b><span class="stamp-sub">題庫 2,593 題 · 17 章</span></div>
     </div>
   </div>
 </header>
@@ -367,7 +429,7 @@ footer{padding:22px 0 0;border-top:1px solid var(--line);color:var(--ink-3);font
         </div>
       </div>
     </section>
-    <p class="eyebrow" style="text-align:center">鍵盤 1–4 或 A–D 作答 · Enter 下一題</p>
+    <p class="eyebrow kbdhint" style="text-align:center">鍵盤 1–4 或 A–D 作答 · Enter 下一題</p>
   </div>
 </div>
 
@@ -650,6 +712,7 @@ function renderQ(){
   });
   elVerdict.classList.add("hide");
   hud();
+  if (window.scrollY > 0) window.scrollTo(0, 0);
 }
 
 elChoices.addEventListener("click", function(e){
@@ -690,7 +753,8 @@ function answer(k){
   document.getElementById("nextbtn").textContent = run.i >= run.list.length ? "看結算 →" : "下一題 →";
 }
 
-document.getElementById("nextbtn").addEventListener("click", next);
+/* 整條回饋列都可點（手機上不必瞄準按鈕） */
+elVerdict.addEventListener("click", next);
 function next(){
   if (!run || !run.locked) return;
   if (run.i >= run.list.length) finish(); else renderQ();
@@ -759,3 +823,6 @@ document.getElementById("backHome").addEventListener("click", function(){
 renderChapters(); renderWrong(); renderResume(); updateStart();
 })();
 </script>
+
+</body>
+</html>
