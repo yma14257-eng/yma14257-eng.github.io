@@ -223,6 +223,26 @@ button.choice.is-bad .key{background:var(--bad);border-color:var(--bad);color:#f
 button.choice.is-bad .mark{color:var(--bad)}
 button.choice.dim{opacity:.5}
 
+/* ── 問 AI ────────────────────────────── */
+.askrow{margin-top:14px;display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.askbtn.plain{background:none;color:var(--ink-3);font-weight:500}
+.askbtn.plain:hover{border-color:var(--ink-3);color:var(--ink-2);background:var(--surface-2)}
+a.askbtn{
+  display:inline-flex;align-items:center;gap:7px;cursor:pointer;
+  border:1.5px solid var(--line-2);border-radius:var(--r);
+  padding:8px 14px;font-size:.85rem;font-weight:600;
+  color:var(--ink-2);text-decoration:none;
+}
+a.askbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.askicon{color:var(--accent);font-size:.95rem;line-height:1}
+.askout{font-size:.8rem;opacity:.6}
+a.askbtn.copied{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+a.rv-ask{
+  display:inline-block;margin-top:9px;font-size:.76rem;font-weight:600;
+  color:var(--ink-3);text-decoration:none;border-bottom:1px solid var(--line-2);
+}
+a.rv-ask:hover{color:var(--accent);border-bottom-color:var(--accent)}
+
 .verdict{
   margin-top:16px;padding-top:14px;border-top:1px dashed var(--line-2);
   display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
@@ -263,6 +283,10 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
   .key{width:30px;height:30px;font-size:.92rem;margin-top:0}
   label.ch{padding:15px 16px}
   .chip{padding:7px 13px}
+  .askbtn{min-height:46px;padding:10px 14px;font-size:.88rem;white-space:nowrap}
+  .askrow{justify-content:stretch}
+  .askrow .askbtn{flex:1 1 auto;justify-content:center}
+  .askrow .askbtn.plain{flex:0 0 auto}
   .seg button{padding:9px 15px}
   .quitbtn{padding:8px 13px}
   .themebtn{padding:9px 12px}
@@ -423,6 +447,12 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
         </div>
         <p class="stem" id="stem"></p>
         <ol class="choices" id="choices"></ol>
+        <div class="askrow hide" id="askrow">
+          <button class="askbtn plain" id="copybtn" type="button">複製題目</button>
+          <a class="askbtn" id="askbtn" target="_blank" rel="noopener noreferrer" href="#">
+            <span class="askicon" aria-hidden="true">✳</span>問 Claude 為什麼<span class="askout" aria-hidden="true">↗</span>
+          </a>
+        </div>
         <div class="verdict hide" id="verdict">
           <div><span class="msg" id="vmsg"></span><span class="hint">按 Enter 或空白鍵下一題</span></div>
           <button class="nextbtn" id="nextbtn" type="button">下一題 →</button>
@@ -711,6 +741,7 @@ function renderQ(){
     li.appendChild(b); elChoices.appendChild(li);
   });
   elVerdict.classList.add("hide");
+  askrow.classList.add("hide");
   hud();
   if (window.scrollY > 0) window.scrollTo(0, 0);
 }
@@ -733,6 +764,10 @@ function answer(k){
   });
 
   if (right){ run.ok++; } else { run.bad++; run.wrong.push([idx, k]); }
+  askText = askPrompt(idx, k);
+  askbtn.href = CLAUDE_NEW + encodeURIComponent(askText);
+  askrow.classList.remove("hide");
+
   elVerdict.classList.remove("hide", "ok", "bad");
   elVerdict.classList.add(right ? "ok" : "bad");
   elVmsg.textContent = right ? "答對　" + LETTER[correct] : "答錯　正解是 " + LETTER[correct];
@@ -752,6 +787,61 @@ function answer(k){
   run.i++; hud(); saveRun();
   document.getElementById("nextbtn").textContent = run.i >= run.list.length ? "看結算 →" : "下一題 →";
 }
+
+/* ── 問 AI：把整題組成提問，丟給 Claude 或複製走 ── */
+function askPrompt(idx, chosen){
+  var q = Q[idx], p = chParts(CH[q[0]]);
+  var L = [
+    "我在準備公共工程品質管理訓練班（土建）的測驗，這題想搞懂。",
+    "",
+    "【章節】" + p.unit + "　" + p.title,
+    "【題目】" + q[1]
+  ];
+  q[2].forEach(function(o, i){ L.push("　(" + LETTER[i] + ") " + o); });
+  L.push("");
+  L.push("【我選的】" + (chosen > -1 ? LETTER[chosen] + "　" + q[2][chosen] : "（未作答）"));
+  L.push("【官方答案】" + LETTER[q[3]] + "　" + q[2][q[3]]);
+  L.push("");
+  L.push("請說明：");
+  L.push("1. 官方答案為什麼對，依據哪一條法規、規範或工程原理");
+  L.push("2. 我選的那個錯在哪，是觀念錯還是被某個字詞設了陷阱");
+  L.push("3. 其餘選項各錯在哪裡");
+  L.push("4. 如果官方答案與工程實務見解有出入，請直接指出來，不要為了配合答案硬拗");
+  L.push("");
+  L.push("請用繁體中文，先給結論再展開說明。");
+  return L.join("\n");
+}
+var CLAUDE_NEW = "https://claude.ai/new?q=";
+var askrow = document.getElementById("askrow"),
+    askbtn = document.getElementById("askbtn"),
+    copybtn = document.getElementById("copybtn");
+var askText = "";
+
+function copyText(t){
+  try{
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+  }catch(e){}
+  return new Promise(function(res, rej){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = t; ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:0;left:-9999px";
+      document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      ok ? res() : rej();
+    }catch(e){ rej(e); }
+  });
+}
+function flash(btn, msg){
+  var old = btn.textContent;
+  btn.textContent = msg; btn.classList.add("copied");
+  setTimeout(function(){ btn.textContent = old; btn.classList.remove("copied"); }, 2200);
+}
+copybtn.addEventListener("click", function(){
+  copyText(askText).then(function(){ flash(copybtn, "已複製"); },
+                         function(){ flash(copybtn, "複製失敗"); });
+});
 
 /* 整條回饋列都可點（手機上不必瞄準按鈕） */
 elVerdict.addEventListener("click", next);
@@ -799,7 +889,9 @@ function finish(){
         '<div class="eyebrow">' + esc(chParts(CH[q[0]]).title) + '</div>' +
         '<div class="rv-stem">' + esc(q[1]) + '</div>' +
         '<div class="rv-row you"><span class="tag mono">你選 ' + LETTER[you] + '</span><span>' + esc(q[2][you]) + '</span></div>' +
-        '<div class="rv-row ans"><span class="tag mono">正解 ' + LETTER[q[3]] + '</span><span>' + esc(q[2][q[3]]) + '</span></div>';
+        '<div class="rv-row ans"><span class="tag mono">正解 ' + LETTER[q[3]] + '</span><span>' + esc(q[2][q[3]]) + '</span></div>' +
+        '<a class="rv-ask" target="_blank" rel="noopener noreferrer" href="' +
+          esc(CLAUDE_NEW + encodeURIComponent(askPrompt(pair[0], you))) + '">問 Claude 為什麼 ↗</a>';
       list.appendChild(li);
     });
   }
