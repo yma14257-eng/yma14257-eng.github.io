@@ -97,14 +97,48 @@ h1 .rule{display:block;width:38px;height:3px;background:var(--accent);margin-bot
 .themebtn:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ── 頁籤 ─────────────────────────────── */
-nav.tabs{background:var(--surface);border-bottom:1px solid var(--line)}
-.tabs-in{display:flex;gap:4px}
-.tab{
-  background:none;border:0;border-bottom:3px solid transparent;
-  padding:11px 16px;font-size:.94rem;font-weight:600;color:var(--ink-3);cursor:pointer;
+nav.tabs{background:var(--bg);border-bottom:1px solid var(--line)}
+.tabs-in{padding-block:12px}
+.tabseg{
+  display:grid;grid-template-columns:1fr 1fr;gap:0;
+  border:1.5px solid var(--line-2);border-radius:var(--r);
+  overflow:hidden;background:var(--surface);
 }
-.tab:hover{color:var(--ink-2)}
-.tab[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab{
+  background:var(--surface);border:0;border-right:1.5px solid var(--line-2);
+  padding:9px 14px;cursor:pointer;text-align:left;color:var(--ink-2);
+  display:flex;flex-direction:column;gap:1px;transition:background .12s,color .12s;
+}
+.tab:last-child{border-right:0}
+.tab b{font-size:.95rem;font-weight:700;line-height:1.3}
+.tab em{
+  font-style:normal;font-size:.7rem;line-height:1.35;color:var(--ink-3);
+  letter-spacing:.02em;
+}
+.tab:hover{background:var(--surface-2)}
+.tab[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tab[aria-pressed="true"] em{color:var(--accent-ink);opacity:.78}
+.tab[aria-pressed="true"]:hover{background:var(--accent)}
+
+/* ── 首次引導 ─────────────────────────── */
+.card.guide{border-color:var(--ink);border-width:1.5px}
+.card.guide .card-hd{background:var(--ink);border-bottom:0}
+.card.guide .card-hd .eyebrow{color:var(--bg)}
+.card.guide .chip{border-color:var(--ink-3);color:var(--bg)}
+.card.guide .chip:hover{border-color:var(--accent);color:var(--accent);background:none}
+ol.steps{margin:0;padding-left:1.35em;display:flex;flex-direction:column;gap:11px}
+ol.steps li{font-size:.9rem;line-height:1.75;padding-left:3px}
+ol.steps li::marker{color:var(--accent);font-weight:700}
+ol.steps b{font-weight:700}
+.guidenote{
+  margin:15px 0 0;padding-top:12px;border-top:1px dashed var(--line-2);
+  font-size:.78rem;color:var(--ink-3);line-height:1.6;
+}
+.guidelink{
+  background:none;border:0;padding:0;font-size:.76rem;color:var(--ink-3);
+  text-decoration:underline;cursor:pointer;
+}
+.guidelink:hover{color:var(--accent)}
 
 /* ── 觀念地圖共用 ─────────────────────── */
 p.lead{margin:0 0 16px;font-size:.88rem;line-height:1.75;color:var(--ink-2);max-width:62ch}
@@ -459,8 +493,14 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
 
 <nav class="tabs" id="tabs">
   <div class="wrap tabs-in">
-    <button type="button" class="tab" data-tab="quiz" aria-pressed="true">刷題</button>
-    <button type="button" class="tab" data-tab="map">觀念地圖</button>
+    <div class="tabseg" role="tablist">
+      <button type="button" class="tab" data-tab="quiz" aria-pressed="true">
+        <b>刷題</b><em>選章節作答 · 2,593 題</em>
+      </button>
+      <button type="button" class="tab" data-tab="map">
+        <b>觀念地圖</b><em>優先序 · 觀念群 · 數字表</em>
+      </button>
+    </div>
   </div>
 </nav>
 
@@ -512,6 +552,21 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
 
 <!-- ══ 首頁 ══ -->
 <div id="view-home" class="wrap">
+
+  <section class="card guide" id="guidecard" hidden>
+    <div class="card-hd">
+      <span class="eyebrow">第一次來？這樣用</span>
+      <button class="chip" id="guideclose" type="button">知道了，不用再顯示</button>
+    </div>
+    <div class="card-bd">
+      <ol class="steps">
+        <li><b>下面勾要練的章節</b>，選題數，按橘色的「開始作答」。不知道從哪開始就全部勾著、50 題，直接按下去。</li>
+        <li><b>點一下選項就知道對錯</b>，正解會標綠色。答錯的題目會自動收進「錯題本」，之後回首頁就能單獨複習那些題。</li>
+        <li>想知道<b>該先念哪一章</b>、哪些觀念被反覆考、哪些數字一定要背 —— 按最上面的「<b>觀念地圖</b>」。</li>
+      </ol>
+      <p class="guidenote">作答紀錄存在你自己的手機／電腦裡，不會傳到任何地方，也不會跟別人共用。</p>
+    </div>
+  </section>
 
   <section class="card resume" id="resumecard" hidden>
     <div class="card-hd"><span class="eyebrow">未完成的一輪</span>
@@ -581,7 +636,8 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
 
   <footer class="wrap" style="padding-left:0;padding-right:0">
     題目來源：公共工程雲端服務網公布之「公共工程品質管理訓練班（土建）」測試題目，115 年 1 月起適用版本，共 2,593 題。<br>
-    作答紀錄與錯題本只存在這台裝置的瀏覽器裡，換裝置或清除瀏覽資料就會消失。
+    作答紀錄與錯題本只存在這台裝置的瀏覽器裡，換裝置或清除瀏覽資料就會消失。<br>
+    <button class="guidelink" id="guideshow" type="button">再看一次使用說明</button>
   </footer>
 </div>
 
@@ -789,6 +845,19 @@ function updateStart(){
   startbtn.disabled = take === 0;
   startn.textContent = take ? "· " + take + " 題" : "";
 }
+
+/* ── 首次造訪引導 ── */
+var KEY_GUIDE = "qb115_guide_v1";
+var guidecard = document.getElementById("guidecard");
+function renderGuide(){ guidecard.hidden = load(KEY_GUIDE, false) === true; }
+document.getElementById("guideclose").addEventListener("click", function(){
+  save(KEY_GUIDE, true); renderGuide();
+});
+document.getElementById("guideshow").addEventListener("click", function(){
+  save(KEY_GUIDE, false); renderGuide();
+  guidecard.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+renderGuide();
 
 /* ── 錯題本卡 ── */
 var wrongcard = document.getElementById("wrongcard");
