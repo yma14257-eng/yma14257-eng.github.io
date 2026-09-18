@@ -27,6 +27,7 @@
   --accent:#D9541A; --accent-ink:#FFFFFF; --accent-soft:#FBEADF;
   --ok:#00795B; --ok-soft:#E0F0EA; --ok-line:#86C2AC;
   --bad:#A82318; --bad-soft:#FBE6E3; --bad-line:#DC9C95;
+  --star:#8A5A00; --star-soft:#FBF0DA; --star-line:#D9B368;
   --shadow:0 1px 0 rgba(22,29,36,.05), 0 8px 24px -18px rgba(22,29,36,.5);
   --r:3px;
 }
@@ -38,6 +39,7 @@
     --accent:#FF7A3D; --accent-ink:#1A1005; --accent-soft:#33210F;
     --ok:#35B592; --ok-soft:#0F2A23; --ok-line:#2A6B57;
     --bad:#F0796C; --bad-soft:#2E1614; --bad-line:#7A3931;
+    --star:#E3B341; --star-soft:#2C2312; --star-line:#6E5624;
     --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -20px #000;
   }
 }
@@ -48,6 +50,7 @@
   --accent:#FF7A3D; --accent-ink:#1A1005; --accent-soft:#33210F;
   --ok:#35B592; --ok-soft:#0F2A23; --ok-line:#2A6B57;
   --bad:#F0796C; --bad-soft:#2E1614; --bad-line:#7A3931;
+  --star:#E3B341; --star-soft:#2C2312; --star-line:#6E5624;
   --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 30px -20px #000;
 }
 
@@ -336,6 +339,29 @@ label.ch input:focus-visible + .box{outline:2px solid var(--accent);outline-offs
 .quitbtn:hover{border-color:var(--bad);color:var(--bad)}
 
 .qhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.starbtn{
+  margin-left:auto;background:none;border:1px solid var(--line-2);border-radius:var(--r);
+  padding:4px 10px;font-size:.78rem;cursor:pointer;color:var(--ink-3);
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.starbtn .staricon{font-size:.95rem;line-height:1}
+.starbtn:hover{border-color:var(--star);color:var(--star)}
+.starbtn[aria-pressed="true"]{
+  border-color:var(--star);color:var(--star);background:var(--star-soft);font-weight:600;
+}
+.wtag{
+  font-size:.7rem;font-weight:700;letter-spacing:.03em;white-space:nowrap;
+  color:var(--bad);border:1px solid var(--bad-line);background:var(--bad-soft);
+  border-radius:2px;padding:2px 7px;
+}
+.bignum.star{color:var(--star)}
+#starcard{border-color:var(--star-line)}
+#starcard .card-hd{background:var(--star-soft);border-bottom-color:var(--star-line)}
+#starcard .eyebrow{color:var(--star)}
+#starcard .go{background:var(--star);color:#fff}
+.wrongbtns{display:flex;gap:9px;flex-wrap:wrap}
+.wrongbtns .go{width:auto;margin-top:0;padding:10px 18px;font-size:.9rem}
+.wrongdesc b{color:var(--bad)}
 .qno{
   font-family:"JetBrains Mono",monospace;font-weight:700;font-size:.8rem;
   background:var(--ink);color:var(--bg);padding:3px 9px;border-radius:2px;letter-spacing:.04em;
@@ -580,15 +606,30 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
     </div>
   </section>
 
+  <section class="card" id="starcard" hidden>
+    <div class="card-hd"><span class="eyebrow">收藏夾</span>
+      <button class="chip" id="clearstar" type="button">清空</button></div>
+    <div class="card-bd wrongbox">
+      <div>
+        <div class="bignum mono star" id="starn">0</div>
+        <p>你自己標記要記住的題目。跟錯題本不同 —— 答對也能收藏，而且只有你自己按了才會移除。</p>
+      </div>
+      <button class="go" id="starreviewbtn" type="button">練收藏題</button>
+    </div>
+  </section>
+
   <section class="card" id="wrongcard" hidden>
     <div class="card-hd"><span class="eyebrow">錯題本</span>
       <button class="chip" id="clearwrong" type="button">清空</button></div>
     <div class="card-bd wrongbox">
       <div>
         <div class="bignum mono" id="wrongn">0</div>
-        <p>這些是你答錯過的題目，會一直留著，直到你在複習模式裡答對為止。</p>
+        <p id="wrongdesc">這些是你答錯過的題目，會一直留著，直到你在複習模式裡答對為止。</p>
       </div>
-      <button class="go" id="reviewbtn" type="button">複習錯題</button>
+      <div class="wrongbtns">
+        <button class="go" id="reviewbtn" type="button">複習錯題</button>
+        <button class="go ghost hide" id="repeatbtn" type="button">只練一錯再錯</button>
+      </div>
     </div>
   </section>
 
@@ -660,6 +701,10 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
         <div class="qhead">
           <span class="qno" id="qno">01</span>
           <span class="qsrc" id="qsrc"></span>
+          <span class="wtag hide" id="wtag"></span>
+          <button class="starbtn" id="starbtn" type="button" aria-pressed="false">
+            <span class="staricon">☆</span><span class="starlabel">收藏</span>
+          </button>
         </div>
         <p class="stem" id="stem"></p>
         <ol class="choices" id="choices"></ol>
@@ -711,7 +756,8 @@ var RAW = JSON.parse(document.getElementById("qdata").textContent);
 var CH = RAW.chapters, Q = RAW.q;   // q: [chapterIdx, stem, [4 options], answerIdx]
 var LETTER = ["A","B","C","D"];
 var KEY_WRONG = "qb115_wrong_v1", KEY_STAT = "qb115_stat_v1", KEY_SEEN = "qb115_seen_v1", KEY_THEME = "qb115_theme_v1",
-    KEY_PICK = "qb115_pick_v1", KEY_OPT = "qb115_opt_v1", KEY_RUN = "qb115_run_v1";
+    KEY_PICK = "qb115_pick_v1", KEY_OPT = "qb115_opt_v1", KEY_RUN = "qb115_run_v1",
+    KEY_STAR = "qb115_star_v1", KEY_WCNT = "qb115_wcnt_v1";
 
 /* ── 儲存（任何一步失敗都不能讓頁面壞掉） ── */
 function load(k, fb){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }catch(e){ return fb; } }
@@ -722,6 +768,10 @@ var seen     = load(KEY_SEEN, []);             // 做過的題目 index
 var seenSet  = new Set(seen);
 if (!Array.isArray(wrongSet)) wrongSet = [];
 var wrongList = wrongSet.filter(function(i){ return typeof i === "number" && Q[i]; });
+var starSet = load(KEY_STAR, []);                                  // 手動收藏
+var starList = (Array.isArray(starSet) ? starSet : []).filter(function(i){ return typeof i === "number" && Q[i]; });
+var wcnt = load(KEY_WCNT, {}) || {};                               // 每題答錯次數
+function wrongTimes(i){ return wcnt[i] || 0; }
 
 /* ── 主題 ── */
 var root = document.documentElement, themebtn = document.getElementById("themebtn");
@@ -861,10 +911,43 @@ renderGuide();
 
 /* ── 錯題本卡 ── */
 var wrongcard = document.getElementById("wrongcard");
+var starcard = document.getElementById("starcard");
+function repeatList(){ return wrongList.filter(function(i){ return wrongTimes(i) >= 2; }); }
 function renderWrong(){
   document.getElementById("wrongn").textContent = wrongList.length;
   wrongcard.hidden = wrongList.length === 0;
+  var rep = repeatList();
+  var btn = document.getElementById("repeatbtn");
+  btn.classList.toggle("hide", rep.length === 0);
+  btn.textContent = "只練一錯再錯 · " + rep.length + " 題";
+  document.getElementById("wrongdesc").innerHTML = rep.length
+    ? "這些是你答錯過的題目，答對才會移除。其中 <b>" + rep.length +
+      " 題你錯過兩次以上</b> —— 那才是真正沒搞懂的，優先處理。"
+    : "這些是你答錯過的題目，會一直留著，直到你在複習模式裡答對為止。";
 }
+function renderStar(){
+  document.getElementById("starn").textContent = starList.length;
+  starcard.hidden = starList.length === 0;
+}
+document.getElementById("starreviewbtn").addEventListener("click", function(){
+  startRound(shuffle(starList.slice()), "收藏題", false);
+});
+document.getElementById("repeatbtn").addEventListener("click", function(){
+  startRound(shuffle(repeatList()), "一錯再錯", true);
+});
+var clearStarBtn = document.getElementById("clearstar"), sArmed = false, sTimer = null;
+clearStarBtn.addEventListener("click", function(){
+  if (!sArmed){
+    sArmed = true; clearStarBtn.textContent = "再按一次就清空";
+    clearStarBtn.style.color = "var(--bad)"; clearStarBtn.style.borderColor = "var(--bad)";
+    sTimer = setTimeout(function(){ sArmed = false; clearStarBtn.textContent = "清空";
+      clearStarBtn.style.color = ""; clearStarBtn.style.borderColor = ""; }, 4000);
+    return;
+  }
+  clearTimeout(sTimer); sArmed = false;
+  clearStarBtn.textContent = "清空"; clearStarBtn.style.color = ""; clearStarBtn.style.borderColor = "";
+  starList = []; save(KEY_STAR, starList); renderStar();
+});
 var clearBtn = document.getElementById("clearwrong"), armed = false, armTimer = null;
 clearBtn.addEventListener("click", function(){
   if (!armed){
@@ -927,6 +1010,7 @@ function readSavedRun(){
   s.wrong = Array.isArray(s.wrong) ? s.wrong : [];
   s.scope = s.scope || "上次的題組";
   s.locked = false;
+  s.cur = s.list[s.i];
   return s;
 }
 function renderResume(){
@@ -960,6 +1044,7 @@ function hud(){
 
 function renderQ(){
   var idx = run.list[run.i], q = Q[idx];
+  run.cur = idx;
   run.locked = false;
   elQno.textContent = String(run.i + 1).padStart(2, "0") + " / " + run.list.length;
   elQsrc.textContent = CH[q[0]].replace(": ", "　");
@@ -974,6 +1059,7 @@ function renderQ(){
   });
   elVerdict.classList.add("hide");
   askrow.classList.add("hide");
+  paintStar(idx); paintWrongTag(idx);
   hud();
   if (window.scrollY > 0) window.scrollTo(0, 0);
 }
@@ -1006,7 +1092,11 @@ function answer(k){
 
   // 錯題本：答錯就加進去，複習模式答對就移出
   var pos = wrongList.indexOf(idx);
-  if (!right && pos === -1) wrongList.push(idx);
+  if (!right){
+    if (pos === -1) wrongList.push(idx);
+    wcnt[idx] = wrongTimes(idx) + 1; save(KEY_WCNT, wcnt);
+    paintWrongTag(idx);
+  }
   if (right && run.review && pos > -1) wrongList.splice(pos, 1);
   save(KEY_WRONG, wrongList);
 
@@ -1019,6 +1109,27 @@ function answer(k){
   run.i++; hud(); saveRun();
   document.getElementById("nextbtn").textContent = run.i >= run.list.length ? "看結算 →" : "下一題 →";
 }
+
+/* ── 收藏 / 錯過次數 ── */
+var starbtn = document.getElementById("starbtn"), wtag = document.getElementById("wtag");
+function paintStar(idx){
+  var on = starList.indexOf(idx) > -1;
+  starbtn.setAttribute("aria-pressed", String(on));
+  starbtn.querySelector(".staricon").textContent = on ? "★" : "☆";
+  starbtn.querySelector(".starlabel").textContent = on ? "已收藏" : "收藏";
+}
+function paintWrongTag(idx){
+  var n = wrongTimes(idx);
+  wtag.classList.toggle("hide", n < 1);
+  wtag.textContent = n === 1 ? "錯過 1 次" : "錯過 " + n + " 次";
+}
+starbtn.addEventListener("click", function(){
+  if (!run || run.cur == null) return;
+  var idx = run.cur;
+  var pos = starList.indexOf(idx);
+  if (pos > -1) starList.splice(pos, 1); else starList.push(idx);
+  save(KEY_STAR, starList); paintStar(idx);
+});
 
 /* ── 問 AI：把整題組成提問，丟給 Claude 或複製走 ── */
 function askPrompt(idx, chosen){
@@ -1135,12 +1246,12 @@ function finish(){
   document.getElementById("againWrong").onclick = function(){
     if (againList.length) startRound(shuffle(againList.slice()), againScope + "（錯題重練）", true);
   };
-  renderWrong(); renderChapters(); updateStart();
+  renderWrong(); renderStar(); renderChapters(); updateStart();
   show(vDone);
 }
 document.getElementById("backHome").addEventListener("click", function(){
   run = null;
-  renderWrong(); renderResume(); renderChapters(); updateStart(); show(vHome);
+  renderWrong(); renderStar(); renderResume(); renderChapters(); updateStart(); show(vHome);
 });
 
 /* ══════════════ 觀念地圖 ══════════════ */
@@ -1339,7 +1450,7 @@ function buildMap(){
 }
 
 /* ── 起始狀態 ── */
-renderChapters(); renderWrong(); renderResume(); updateStart();
+renderChapters(); renderWrong(); renderStar(); renderResume(); updateStart();
 })();
 </script>
 
