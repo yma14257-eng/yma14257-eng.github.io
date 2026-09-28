@@ -811,6 +811,20 @@ function saveIdx(k, list){ save(k, list.map(idOf)); }
 })();
 
 var stat     = load(KEY_STAT, {});             // {chIdx: [做過, 答對]}
+/* 修補：中間有一版把這兩個數字存反了（寫成 [答對, 做過]），會算出 100% 以上的正確率。
+   答對不可能多於做過，出現這種紀錄就把它換回來，並丟掉不合理的值。 */
+(function fixStat(){
+  if (!stat || typeof stat !== "object"){ stat = {}; return; }
+  var changed = false;
+  Object.keys(stat).forEach(function(c){
+    var v = stat[c];
+    if (!Array.isArray(v) || v.length !== 2 ||
+        typeof v[0] !== "number" || typeof v[1] !== "number" ||
+        v[0] < 0 || v[1] < 0){ delete stat[c]; changed = true; return; }
+    if (v[1] > v[0]){ stat[c] = [v[1], v[0]]; changed = true; }
+  });
+  if (changed) save(KEY_STAT, stat);
+})();
 var seen     = load(KEY_SEEN, []);             // 做過的題目 index
 var seenSet  = new Set(Array.isArray(seen) ? seen : (seen = []));
 var wrongList = loadIdx(KEY_WRONG);            // 錯題（記憶體內用 index）
@@ -1064,6 +1078,7 @@ function readSavedRun(){
   if (typeof s.i !== "number" || s.i < 0 || s.i >= s.list.length) return null;
   s.ok = s.ok || 0; s.bad = s.bad || 0;
   s.wrong = Array.isArray(s.wrong) ? s.wrong : [];
+  if (s.ans || s.mode || s.label) return null;   // 中間某一版的格式，不相容
   s.scope = s.scope || "上次的題組";
   s.locked = false;
   s.cur = s.list[s.i];
