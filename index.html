@@ -376,7 +376,15 @@ label.ch input:focus-visible + .box{outline:2px solid var(--accent);outline-offs
 #starcard .card-hd{background:var(--star-soft);border-bottom-color:var(--star-line)}
 #starcard .eyebrow{color:var(--star)}
 #starcard .go{background:var(--star);color:#fff}
-.wrongbtns{display:flex;gap:9px;flex-wrap:wrap}
+.wrongbtns{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.wrongbtns .seg button{padding:6px 11px;font-size:.8rem;display:flex;align-items:center;gap:6px}
+.wrongbtns .seg .segn{
+  font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:.72rem;font-weight:700;padding:0 5px;border-radius:2px;
+  background:var(--surface-2);color:var(--ink-3);
+}
+.wrongbtns .seg button[aria-pressed="true"] .segn{background:rgba(255,255,255,.22);color:var(--accent-ink)}
+.wrongbtns .go{width:auto;margin-top:0;padding:10px 18px;font-size:.9rem}
 .wrongdesc b{color:var(--bad)}
 .qno{
   font-family:"JetBrains Mono",monospace;font-weight:700;font-size:.8rem;
@@ -646,8 +654,8 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
         <p id="wrongdesc">這些是你答錯過的題目，會一直留著，直到你在複習模式裡答對為止。</p>
       </div>
       <div class="wrongbtns">
+        <div class="seg" id="segWrong"></div>
         <button class="go" id="reviewbtn" type="button">複習錯題</button>
-        <button class="go ghost hide" id="repeatbtn" type="button">只練一錯再錯</button>
       </div>
     </div>
   </section>
@@ -1004,18 +1012,41 @@ renderGuide();
 /* ── 錯題本卡 / 收藏卡 ── */
 var wrongcard = document.getElementById("wrongcard");
 var starcard = document.getElementById("starcard");
-function repeatList(){ return wrongList.filter(function(i){ return wrongTimes(i) >= 2; }); }
+/* 錯題本：可以只挑「錯過 N 次以上」的題來練 */
+var WFILTER = [[1, "全部"], [2, "錯 2 次↑"], [3, "錯 3 次↑"]];
+function wrongTh(){ var v = +(savedOpt.wfilter || 1); return (v === 2 || v === 3) ? v : 1; }
+function wrongPool(th){
+  th = th || wrongTh();
+  if (th <= 1) return wrongList.slice();        // 「全部」＝整本錯題，不看計次
+  return wrongList.filter(function(i){ return wrongTimes(i) >= th; });
+}
+var segWrongBox = document.getElementById("segWrong");
+segWrongBox.addEventListener("click", function(e){
+  var b = e.target.closest("button[data-v]"); if (!b) return;
+  savedOpt.wfilter = +b.getAttribute("data-v"); save(KEY_OPT, savedOpt);
+  renderWrong();
+});
 function renderWrong(){
   document.getElementById("wrongn").textContent = wrongList.length;
   wrongcard.hidden = wrongList.length === 0;
-  var rep = repeatList();
-  var btn = document.getElementById("repeatbtn");
-  btn.classList.toggle("hide", rep.length === 0);
-  btn.textContent = "只練一錯再錯 · " + rep.length + " 題";
+  var th = wrongTh(), pool = wrongPool(th), rep = wrongPool(2);
+
+  segWrongBox.innerHTML = WFILTER.map(function(o){
+    return '<button type="button" data-v="' + o[0] + '"' +
+      (o[0] === th ? ' aria-pressed="true"' : '') + '>' + o[1] +
+      '<span class="segn">' + wrongPool(o[0]).length + '</span></button>';
+  }).join("");
+
+  var btn = document.getElementById("reviewbtn");
+  btn.disabled = pool.length === 0;
+  btn.textContent = pool.length
+    ? (th === 1 ? "複習錯題 · " : "只練這 ") + pool.length + " 題"
+    : "沒有錯 " + th + " 次以上的題";
+
   document.getElementById("wrongdesc").innerHTML = rep.length
-    ? "這些是你答錯過的題目，答對才會移除。其中 <b>" + rep.length +
-      " 題你錯過兩次以上</b> —— 那才是真正沒搞懂的，優先處理。"
-    : "這些是你答錯過的題目，會一直留著，直到你在複習模式裡答對為止。";
+    ? "答錯過的題目會留在這裡，直到你在複習模式裡答對為止。其中 <b>" + rep.length +
+      " 題你錯過兩次以上</b> —— 錯一次多半是手滑，錯兩次以上才是真的沒搞懂，優先處理那些。"
+    : "答錯過的題目會留在這裡，直到你在複習模式裡答對為止。左邊可以只挑錯過兩次、三次以上的題來練。";
 }
 function renderStar(){
   document.getElementById("starn").textContent = starList.length;
@@ -1023,9 +1054,6 @@ function renderStar(){
 }
 document.getElementById("starreviewbtn").addEventListener("click", function(){
   startRound(shuffle(starList.slice()), "收藏題", false);
-});
-document.getElementById("repeatbtn").addEventListener("click", function(){
-  startRound(shuffle(repeatList()), "一錯再錯", true);
 });
 var clearStarBtn = document.getElementById("clearstar"), sArmed = false, sTimer = null;
 clearStarBtn.addEventListener("click", function(){
@@ -1054,7 +1082,9 @@ clearBtn.addEventListener("click", function(){
   renderWrong();
 });
 document.getElementById("reviewbtn").addEventListener("click", function(){
-  startRound(shuffle(wrongList.slice()), "錯題複習", true);
+  var th = wrongTh(), pool = wrongPool(th);
+  if (!pool.length) return;
+  startRound(shuffle(pool), th === 1 ? "錯題複習" : "錯過 " + th + " 次以上", true);
 });
 
 /* 重設正確率：清掉章節統計與「做過」紀錄，錯題本、收藏一律保留 */
