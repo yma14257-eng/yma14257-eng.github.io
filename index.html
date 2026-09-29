@@ -259,10 +259,18 @@ section.card{
   padding:4px 10px;font-size:.78rem;cursor:pointer;color:var(--ink-2);
 }
 .chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.copied{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
 .unit-label{
   padding:10px 16px;border-bottom:1px solid var(--line);
   background:var(--bg);
 }
+.resetbar{
+  border-top:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.resetbar span{font-size:.78rem;color:var(--ink-3);line-height:1.6;max-width:46ch}
+.resetbar span b{color:var(--ink-2);font-weight:600}
+.resetbar .chip{flex:none;white-space:nowrap}
 ul.chlist{list-style:none;margin:0;padding:0}
 ul.chlist li{border-bottom:1px solid var(--line)}
 ul.chlist li:last-child{border-bottom:0}
@@ -655,6 +663,11 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
       </div>
     </div>
     <div id="chlist"></div>
+    <div class="card-bd resetbar">
+      <span>右邊的百分比是你在該章的正確率。做完一輪想從頭重算，就按這裡
+        —— <b>錯題本與收藏不受影響</b>。</span>
+      <button class="chip" id="resetacc" type="button">重設正確率</button>
+    </div>
   </section>
 
   <section class="card">
@@ -1043,6 +1056,28 @@ clearBtn.addEventListener("click", function(){
 document.getElementById("reviewbtn").addEventListener("click", function(){
   startRound(shuffle(wrongList.slice()), "錯題複習", true);
 });
+
+/* 重設正確率：清掉章節統計與「做過」紀錄，錯題本、收藏一律保留 */
+(function(){
+  var btn = document.getElementById("resetacc"), armedR = false, tR = null;
+  btn.addEventListener("click", function(){
+    if (!armedR){
+      armedR = true; btn.textContent = "再按一次就重設";
+      btn.style.color = "var(--bad)"; btn.style.borderColor = "var(--bad)";
+      tR = setTimeout(function(){ armedR = false; btn.textContent = "重設正確率";
+        btn.style.color = ""; btn.style.borderColor = ""; }, 4000);
+      return;
+    }
+    clearTimeout(tR); armedR = false;
+    btn.textContent = "重設正確率"; btn.style.color = ""; btn.style.borderColor = "";
+    stat = {}; save(KEY_STAT, stat);
+    seen = []; seenSet = new Set(); save(KEY_SEEN, seen);
+    renderChapters(); updateStart();
+    if (mapBuilt) renderPrio();
+    btn.textContent = "已重設"; btn.classList.add("copied");
+    setTimeout(function(){ btn.textContent = "重設正確率"; btn.classList.remove("copied"); }, 2200);
+  });
+})();
 
 /* ── 出題 ── */
 function shuffle(a){
