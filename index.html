@@ -260,6 +260,14 @@ section.card{
 }
 .chip:hover{border-color:var(--accent);color:var(--accent)}
 .chip.copied{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.seg .segn{
+  font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;
+  font-size:.72rem;font-weight:700;margin-left:6px;padding:0 5px;border-radius:2px;
+  background:var(--surface-2);color:var(--ink-3);
+}
+.seg button[aria-pressed="true"] .segn{background:rgba(255,255,255,.22);color:var(--accent-ink)}
+.wminnote{margin:12px 0 0;font-size:.78rem;color:var(--ink-3);line-height:1.6}
+.wminnote b{color:var(--ink-2);font-weight:600}
 .unit-label{
   padding:10px 16px;border-bottom:1px solid var(--line);
   background:var(--bg);
@@ -376,26 +384,7 @@ label.ch input:focus-visible + .box{outline:2px solid var(--accent);outline-offs
 #starcard .card-hd{background:var(--star-soft);border-bottom-color:var(--star-line)}
 #starcard .eyebrow{color:var(--star)}
 #starcard .go{background:var(--star);color:#fff}
-.wrongbtns{display:flex;gap:9px;flex-wrap:wrap;align-items:center;flex:1 1 100%}
-.wsel{
-  font:inherit;font-size:.82rem;color:var(--ink);background:var(--surface);
-  border:1px solid var(--line-2);border-radius:var(--r);padding:7px 30px 7px 10px;
-  max-width:100%;min-width:0;cursor:pointer;
-  -webkit-appearance:none;appearance:none;
-  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),
-                   linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
-  background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;
-  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
-}
-.wsel:focus{outline:none;border-color:var(--accent)}
-.wsel.on{border-color:var(--accent);color:var(--accent);font-weight:600}
-.wrongbtns .seg button{padding:6px 11px;font-size:.8rem;display:flex;align-items:center;gap:6px}
-.wrongbtns .seg .segn{
-  font-family:"JetBrains Mono",monospace;font-variant-numeric:tabular-nums;
-  font-size:.72rem;font-weight:700;padding:0 5px;border-radius:2px;
-  background:var(--surface-2);color:var(--ink-3);
-}
-.wrongbtns .seg button[aria-pressed="true"] .segn{background:rgba(255,255,255,.22);color:var(--accent-ink)}
+.wrongbtns{display:flex;gap:9px;flex-wrap:wrap}
 .wrongbtns .go{width:auto;margin-top:0;padding:10px 18px;font-size:.9rem}
 .wrongdesc b{color:var(--bad)}
 .qno{
@@ -532,7 +521,6 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
   .opts{gap:14px 20px}
   .bignum{font-size:1.8rem}
   .wrongbox .go,.card.resume .go{width:100%;padding:13px}
-  .wsel{width:100%}
   .score{font-size:2.6rem}
   .qhead{gap:8px;margin-bottom:11px}
   .qsrc .qunit{display:none}
@@ -667,8 +655,6 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
         <p id="wrongdesc">這些是你答錯過的題目，會一直留著，直到你在複習模式裡答對為止。</p>
       </div>
       <div class="wrongbtns">
-        <select class="wsel" id="selWrongCh" aria-label="只練某一章的錯題"></select>
-        <div class="seg" id="segWrong"></div>
         <button class="go" id="reviewbtn" type="button">複習錯題</button>
       </div>
     </div>
@@ -687,7 +673,7 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
     <div id="chlist"></div>
     <div class="card-bd resetbar">
       <span>右邊的百分比是你在該章的正確率。做完一輪想從頭重算，就按這裡
-        —— <b>錯題本與收藏不受影響</b>。</span>
+        —— <b>錯題本、收藏、錯過紀錄都不受影響</b>。</span>
       <button class="chip" id="resetacc" type="button">重設正確率</button>
     </div>
   </section>
@@ -714,9 +700,14 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
           <div class="seg" id="segBias">
             <button type="button" data-v="off" aria-pressed="true">不指定</button>
             <button type="button" data-v="unseen">沒做過的</button>
+            <button type="button" data-v="wrong">錯過的</button>
           </div>
         </div>
+        <div class="opt-g hide" id="wminRow"><span class="eyebrow">至少錯</span>
+          <div class="seg" id="segWmin"></div>
+        </div>
       </div>
+      <p class="wminnote hide" id="wminNote"></p>
       <button class="go" id="startbtn" type="button" style="margin-top:18px">開始作答 <span class="mono" id="startn"></span></button>
     </div>
   </section>
@@ -887,6 +878,13 @@ function saveWcnt(){
   Object.keys(wcnt).forEach(function(i){ o[idOf(+i)] = wcnt[i]; });
   save(KEY_WCNT, o);
 }
+/* 錯過紀錄＝永久的歷史，跟錯題本分開：答對離開錯題本、按清空錯題本，都不會抹掉。
+   舊版答錯的題目當時還沒有計次，這裡補成「至少錯過 1 次」，之後才不會漏抓。 */
+(function(){
+  var fixed = false;
+  wrongList.forEach(function(i){ if (!wcnt[i]){ wcnt[i] = 1; fixed = true; } });
+  if (fixed) saveWcnt();
+})();
 
 /* ── 主題 ── */
 var root = document.documentElement, themebtn = document.getElementById("themebtn");
@@ -995,20 +993,56 @@ var segCount = seg("segCount", "count", "50"),
     segBias  = seg("segBias",  "bias",  "off");
 
 var startbtn = document.getElementById("startbtn"), startn = document.getElementById("startn");
-function poolFor(){
+/* 「錯過的」：依錯過紀錄出題，包含已經答對、從錯題本消失的題 */
+function wmin(){ var v = +(savedOpt.wmin || 1); return (v === 2 || v === 3) ? v : 1; }
+function pickedIdx(){
   var out = [];
   for (var i = 0; i < Q.length; i++) if (picked.has(Q[i][0])) out.push(i);
-  if (segBias.get() === "unseen"){
+  return out;
+}
+function poolFor(){
+  var out = pickedIdx(), b = segBias.get();
+  if (b === "unseen"){
     var fresh = out.filter(function(i){ return !seenSet.has(i); });
     if (fresh.length) out = fresh;
+  } else if (b === "wrong"){
+    var m = wmin();
+    out = out.filter(function(i){ return wrongTimes(i) >= m; });
   }
   return out;
 }
+var wminRow = document.getElementById("wminRow"), wminNote = document.getElementById("wminNote"),
+    segWmin = document.getElementById("segWmin");
+segWmin.addEventListener("click", function(e){
+  var b = e.target.closest("button[data-v]"); if (!b) return;
+  savedOpt.wmin = +b.getAttribute("data-v"); save(KEY_OPT, savedOpt);
+  updateStart();
+});
+function renderWmin(){
+  var on = segBias.get() === "wrong";
+  wminRow.classList.toggle("hide", !on);
+  wminNote.classList.toggle("hide", !on);
+  if (!on) return;
+  var base = pickedIdx(), m = wmin(), c = [0, 0, 0, 0];
+  base.forEach(function(i){ var t = wrongTimes(i); if (t >= 1) c[1]++; if (t >= 2) c[2]++; if (t >= 3) c[3]++; });
+  segWmin.innerHTML = [1, 2, 3].map(function(k){
+    return '<button type="button" data-v="' + k + '"' + (k === m ? ' aria-pressed="true"' : '') + '>' +
+      k + ' 次<span class="segn">' + c[k] + '</span></button>';
+  }).join("");
+  var bookSet = new Set(wrongList);
+  var inBook = base.filter(function(i){ return bookSet.has(i) && wrongTimes(i) >= 1; }).length;
+  wminNote.innerHTML = c[1]
+    ? "你在勾選的章節裡曾經錯過 <b>" + c[1] + " 題</b>，其中 " + inBook + " 題還在錯題本、" +
+      (c[1] - inBook) + " 題已經不在錯題本了 —— 這裡兩種都會抓。"
+    : "勾選的章節裡還沒有錯過的題目。先練一輪，答錯的就會記下來。";
+}
 function updateStart(){
+  renderWmin();
   var pool = poolFor(), n = +segCount.get();
   var take = n === 0 ? pool.length : Math.min(n, pool.length);
   startbtn.disabled = take === 0;
-  startn.textContent = take ? "· " + take + " 題" : "";
+  startn.textContent = take ? "· " + take + " 題"
+    : (segBias.get() === "wrong" ? "· 沒有符合的題" : "");
 }
 
 /* ── 首次造訪引導 ── */
@@ -1026,71 +1060,14 @@ renderGuide();
 /* ── 錯題本卡 / 收藏卡 ── */
 var wrongcard = document.getElementById("wrongcard");
 var starcard = document.getElementById("starcard");
-/* 錯題本：可以只挑「錯過 N 次以上」的題來練 */
-var WFILTER = [[1, "全部"], [2, "錯 2 次↑"], [3, "錯 3 次↑"]];
-function wrongTh(){ var v = +(savedOpt.wfilter || 1); return (v === 2 || v === 3) ? v : 1; }
-function wrongCh(){
-  var v = savedOpt.wch; v = (v == null) ? -1 : +v;
-  if (!(v >= 0) || !CH[v]) return -1;
-  // 選過的那章已經沒有錯題了（都答對移除了），就自動回到全部章節
-  if (!wrongList.some(function(i){ return Q[i][0] === v; })) return -1;
-  return v;
-}
-/* th：錯過幾次以上（1＝不限）；ch：章節（-1＝全部） */
-function wrongPool(th, ch){
-  if (th == null) th = wrongTh();
-  if (ch == null) ch = wrongCh();
-  return wrongList.filter(function(i){
-    if (ch >= 0 && Q[i][0] !== ch) return false;
-    return th <= 1 || wrongTimes(i) >= th;      // 「全部」＝不看計次，舊紀錄沒有計次也不會漏
-  });
-}
-var segWrongBox = document.getElementById("segWrong");
-segWrongBox.addEventListener("click", function(e){
-  var b = e.target.closest("button[data-v]"); if (!b) return;
-  savedOpt.wfilter = +b.getAttribute("data-v"); save(KEY_OPT, savedOpt);
-  renderWrong();
-});
-var selWrongCh = document.getElementById("selWrongCh");
-selWrongCh.addEventListener("change", function(){
-  savedOpt.wch = +selWrongCh.value; save(KEY_OPT, savedOpt);
-  renderWrong();
-});
 function renderWrong(){
   document.getElementById("wrongn").textContent = wrongList.length;
   wrongcard.hidden = wrongList.length === 0;
-  var th = wrongTh(), ch = wrongCh(), pool = wrongPool(th, ch), rep = wrongPool(2, -1);
-
-  // 章節下拉：只列出有錯題的章，數字＝套用目前「次數」條件後會練到的題數
-  var hasCh = CH.map(function(){ return 0; });
-  wrongList.forEach(function(i){ hasCh[Q[i][0]]++; });
-  var opt = '<option value="-1">全部章節 · ' + wrongPool(th, -1).length + ' 題</option>';
-  CH.forEach(function(name, c){
-    if (!hasCh[c]) return;
-    opt += '<option value="' + c + '"' + (c === ch ? ' selected' : '') + '>' +
-      esc(chParts(name).title) + ' · ' + wrongPool(th, c).length + ' 題</option>';
-  });
-  selWrongCh.innerHTML = opt;
-  selWrongCh.value = String(ch);
-  selWrongCh.classList.toggle("on", ch >= 0);
-
-  // 次數三段：數字＝套用目前「章節」條件後會練到的題數
-  segWrongBox.innerHTML = WFILTER.map(function(o){
-    return '<button type="button" data-v="' + o[0] + '"' +
-      (o[0] === th ? ' aria-pressed="true"' : '') + '>' + o[1] +
-      '<span class="segn">' + wrongPool(o[0], ch).length + '</span></button>';
-  }).join("");
-
   var btn = document.getElementById("reviewbtn");
-  btn.disabled = pool.length === 0;
-  btn.textContent = pool.length
-    ? (th === 1 && ch < 0 ? "複習錯題 · " : "只練這 ") + pool.length + " 題"
-    : "這個範圍沒有錯題";
-
-  document.getElementById("wrongdesc").innerHTML = rep.length
-    ? "答錯過的題目會留在這裡，直到你在複習模式裡答對為止。其中 <b>" + rep.length +
-      " 題你錯過兩次以上</b>。平常建議整本練，錯一次也是沒搞懂；考前時間不夠，再只挑錯 2 次以上的。"
-    : "答錯過的題目會留在這裡，直到你在複習模式裡答對為止。下面可以只挑某一章，或只挑錯過兩次、三次以上的題來練。";
+  btn.textContent = "複習錯題 · " + wrongList.length + " 題";
+  document.getElementById("wrongdesc").innerHTML =
+    "答錯、還沒答對的題目會留在這裡，在複習時答對就移除。" +
+    "想練<b>以前錯過、已經不在這裡</b>的題，到下面「本輪設定」的「優先」選「錯過的」。";
 }
 function renderStar(){
   document.getElementById("starn").textContent = starList.length;
@@ -1121,17 +1098,11 @@ clearBtn.addEventListener("click", function(){
   }
   clearTimeout(armTimer); armed = false;
   clearBtn.textContent = "清空"; clearBtn.style.color = ""; clearBtn.style.borderColor = "";
-  wrongList = []; saveIdx(KEY_WRONG, wrongList);
-  wcnt = {}; saveWcnt();
-  renderWrong();
+  wrongList = []; saveIdx(KEY_WRONG, wrongList);   // 只清錯題本，錯過紀錄保留
+  renderWrong(); updateStart();
 });
 document.getElementById("reviewbtn").addEventListener("click", function(){
-  var th = wrongTh(), ch = wrongCh(), pool = wrongPool(th, ch);
-  if (!pool.length) return;
-  var tag = [];
-  if (ch >= 0) tag.push(chParts(CH[ch]).title);
-  if (th > 1) tag.push("錯過 " + th + " 次以上");
-  startRound(shuffle(pool), tag.length ? tag.join(" · ") : "錯題複習", true);
+  startRound(shuffle(wrongList.slice()), "錯題複習", true);
 });
 
 /* 重設正確率：清掉章節統計與「做過」紀錄，錯題本、收藏一律保留 */
@@ -1176,7 +1147,9 @@ startbtn.addEventListener("click", function(){
   if (n > 0) pool = pool.slice(0, n);
   var names = Array.from(picked).sort(function(a,b){return a-b;}).map(function(i){ return chParts(CH[i]).title; });
   var scope = names.length > 2 ? names.length + " 個章節" : names.join("、");
-  startRound(pool, scope, false);
+  var isWrong = segBias.get() === "wrong";
+  if (isWrong) scope += wmin() > 1 ? " · 錯過 " + wmin() + " 次以上" : " · 錯過的";
+  startRound(pool, scope, isWrong);
 });
 
 function startRound(list, scope, isReview){
