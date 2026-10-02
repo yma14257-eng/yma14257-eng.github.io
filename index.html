@@ -526,6 +526,47 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
   .qsrc .qunit{display:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+
+/* ── 講義 ─────────────────────────────── */
+.printbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.printbar .go{width:auto;margin-top:0;padding:11px 20px;font-size:.92rem}
+.printhelp{flex:1 1 100%;margin:0;font-size:.78rem;color:var(--ink-3);line-height:1.65}
+.printhelp b{color:var(--ink-2)}
+#printdoc{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:22px 20px}
+.pd-title{margin:0 0 4px;font-size:1.25rem;font-weight:700}
+.pd-sub{margin:0 0 18px;font-size:.8rem;color:var(--ink-3);line-height:1.6}
+.pd-ch{margin:22px 0 10px;padding:6px 10px;font-size:.92rem;font-weight:700;
+  background:var(--surface-2);border-left:4px solid var(--accent)}
+.pd-q{padding:10px 0;border-bottom:1px dashed var(--line);break-inside:avoid;page-break-inside:avoid}
+.pd-hd{font-size:.74rem;color:var(--ink-3);margin-bottom:3px}
+.pd-hd b{color:var(--ink-2);font-family:"JetBrains Mono",monospace}
+.pd-hd .x{color:var(--bad);font-weight:700;margin-left:8px}
+.pd-hd .d{color:var(--accent);font-weight:700;margin-left:8px}
+.pd-stem{font-size:.95rem;line-height:1.7;margin:0 0 6px;font-weight:500}
+.pd-opts{list-style:none;margin:0;padding:0;font-size:.88rem;line-height:1.7}
+.pd-opts li{padding-left:1.9em;text-indent:-1.9em;color:var(--ink-2)}
+.pd-opts li.ok{color:var(--ok);font-weight:700}
+.pd-opts li.ok::after{content:"　✓ 正解";font-size:.76rem}
+
+@media print{
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]){
+    --bg:#fff; --surface:#fff; --surface-2:#f2f2f2;
+    --ink:#000; --ink-2:#222; --ink-3:#555; --line:#bbb; --line-2:#999;
+    --accent:#b8400f; --ok:#00664d; --bad:#a82318;
+  }
+  body{background:#fff;font-size:10pt;line-height:1.5}
+  .pd-title{font-size:15pt} .pd-sub{margin-bottom:8px}
+  .pd-ch{margin:12px 0 4px;padding:3px 8px}
+  .pd-q{padding:6px 0}
+  .pd-stem{line-height:1.5;margin-bottom:3px}
+  .pd-opts{line-height:1.45}
+  .hazard, header.site, nav.tabs, .printbar, footer{display:none !important}
+  main{padding:0}
+  .wrap{max-width:none;padding:0}
+  #printdoc{border:0;padding:0}
+  .pd-ch{break-after:avoid;page-break-after:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{margin:14mm 13mm}
+}
 </style>
 </head>
 <body>
@@ -708,6 +749,7 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
         </div>
       </div>
       <p class="wminnote hide" id="wminNote"></p>
+      <button class="go ghost hide" id="pdfbtn" type="button" style="margin-top:12px">把這些題目整理成講義（可存成 PDF）</button>
       <button class="go" id="startbtn" type="button" style="margin-top:18px">開始作答 <span class="mono" id="startn"></span></button>
     </div>
   </section>
@@ -784,6 +826,16 @@ button,label.ch{touch-action:manipulation;-webkit-tap-highlight-color:transparen
     <div class="card-hd"><span class="eyebrow">錯題檢討</span></div>
     <ul class="review" id="reviewlist"></ul>
   </section>
+</div>
+<!-- ══ 講義（列印／存成 PDF） ══ -->
+<div id="view-print" class="wrap hide">
+  <div class="printbar">
+    <button class="go" id="doprint" type="button">列印／存成 PDF</button>
+    <button class="go ghost" id="closeprint" type="button">返回</button>
+    <p class="printhelp">按「列印／存成 PDF」後，在跳出來的畫面把印表機改成「<b>另存為 PDF</b>」（iPhone 是在預覽圖上用兩指撥開，再按分享儲存）。
+      如果按了沒反應，請改用 Safari 或 Chrome 開這個網站，或用瀏覽器選單裡的「列印」。</p>
+  </div>
+  <div id="printdoc"></div>
 </div>
 </main>
 
@@ -1022,20 +1074,72 @@ function renderWmin(){
   var on = segBias.get() === "wrong";
   wminRow.classList.toggle("hide", !on);
   wminNote.classList.toggle("hide", !on);
+  pdfbtn.classList.toggle("hide", !on);
   if (!on) return;
   var base = pickedIdx(), m = wmin(), c = [0, 0, 0, 0];
   base.forEach(function(i){ var t = wrongTimes(i); if (t >= 1) c[1]++; if (t >= 2) c[2]++; if (t >= 3) c[3]++; });
   segWmin.innerHTML = [1, 2, 3].map(function(k){
     return '<button type="button" data-v="' + k + '"' + (k === m ? ' aria-pressed="true"' : '') + '>' +
-      k + ' 次<span class="segn">' + c[k] + '</span></button>';
+      k + ' 次↑<span class="segn">' + c[k] + '</span></button>';
   }).join("");
   var bookSet = new Set(wrongList);
   var inBook = base.filter(function(i){ return bookSet.has(i) && wrongTimes(i) >= 1; }).length;
+  pdfbtn.disabled = c[m] === 0;
+  pdfbtn.textContent = c[m] ? "把這 " + c[m] + " 題整理成講義（可存成 PDF）" : "沒有可以整理的題目";
   wminNote.innerHTML = c[1]
     ? "你在勾選的章節裡曾經錯過 <b>" + c[1] + " 題</b>，其中 " + inBook + " 題還在錯題本、" +
       (c[1] - inBook) + " 題已經不在錯題本了 —— 這裡兩種都會抓。"
     : "勾選的章節裡還沒有錯過的題目。先練一輪，答錯的就會記下來。";
 }
+/* ── 講義：把「錯過的」題目排成一份可以列印、存成 PDF 的文件 ── */
+var vPrint = document.getElementById("view-print"), pdfbtn = document.getElementById("pdfbtn");
+function buildHandout(){
+  var m = wmin();
+  var list = pickedIdx().filter(function(i){ return wrongTimes(i) >= m; })
+                        .sort(function(a, b){ return a - b; });
+  var d = new Date();
+  var day = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  var chs = {}; list.forEach(function(i){ chs[Q[i][0]] = 1; });
+  var html = '<h2 class="pd-title">土建品管 · 我錯過的題目</h2>' +
+    '<p class="pd-sub">共 ' + list.length + ' 題，分布在 ' + Object.keys(chs).length + ' 章　｜　條件：' +
+    (m > 1 ? '錯過 ' + m + ' 次以上' : '錯過 1 次以上（全部）') + '　｜　' + day + ' 產生<br>' +
+    '綠色打勾的是官方答案；題號沿用舊版編號（1～' + Q.length + '）。</p>';
+  var last = -1;
+  list.forEach(function(i){
+    var q = Q[i];
+    if (q[0] !== last){
+      last = q[0];
+      var n = list.filter(function(k){ return Q[k][0] === q[0]; }).length;
+      html += '<h3 class="pd-ch">' + esc(CH[q[0]].replace(": ", "　")) + '（' + n + ' 題）</h3>';
+    }
+    html += '<div class="pd-q"><div class="pd-hd"><b>第 ' + (i + 1) + ' 題</b>' +
+      '<span class="x">錯過 ' + wrongTimes(i) + ' 次</span>' +
+      (RETIRED[i] != null ? '<span class="d">官方 9/28 已刪除</span>' : '') + '</div>' +
+      '<p class="pd-stem">' + esc(q[1]) + '</p><ul class="pd-opts">' +
+      q[2].map(function(o, k){
+        return '<li' + (k === q[3] ? ' class="ok"' : '') + '>(' + LETTER[k] + ') ' + esc(o) + '</li>';
+      }).join("") + '</ul></div>';
+  });
+  document.getElementById("printdoc").innerHTML = html;
+  return { n: list.length, day: day };
+}
+var printTitle = null;
+pdfbtn.addEventListener("click", function(){
+  var r = buildHandout();
+  if (!r.n) return;
+  [vHome, vQuiz, vDone].forEach(function(x){ x.classList.add("hide"); });
+  vPrint.classList.remove("hide");
+  printTitle = "土建品管_錯過的題目_" + r.n + "題_" + r.day;
+  window.scrollTo(0, 0);
+});
+document.getElementById("closeprint").addEventListener("click", function(){ show(vHome); });
+document.getElementById("doprint").addEventListener("click", function(){
+  var old = document.title;
+  if (printTitle) document.title = printTitle;      // 存成 PDF 時的預設檔名
+  try{ window.print(); }catch(e){}
+  setTimeout(function(){ document.title = old; }, 1500);
+});
+
 function updateStart(){
   renderWmin();
   var pool = poolFor(), n = +segCount.get();
@@ -1135,6 +1239,7 @@ function shuffle(a){
 var run = null;
 var vHome = document.getElementById("view-home"), vQuiz = document.getElementById("view-quiz"), vDone = document.getElementById("view-done");
 function show(v){
+  document.getElementById("view-print").classList.add("hide");
   [vHome, vQuiz, vDone].forEach(function(x){ x.classList.toggle("hide", x !== v); });
   if (vMap) vMap.classList.add("hide");
   if (curTab !== "quiz") setTab("quiz");
@@ -1445,6 +1550,7 @@ function setTab(name){
     b.setAttribute("aria-pressed", String(b.getAttribute("data-tab") === name));
   });
   if (name === "map"){
+    document.getElementById("view-print").classList.add("hide");
     quizViews.forEach(function(v){ v.classList.add("hide"); });
     vMap.classList.remove("hide");
     buildMap();
